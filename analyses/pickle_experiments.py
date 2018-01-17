@@ -14,7 +14,16 @@ def load_all_files(load_few=False) -> list:
         if (idx + 1) % 100 == 0:
             print("loaded {} files".format(idx + 1))
 
-        objects[idx] = import_experiment(file)
+        experiment = import_experiment(file)
+        parameter_names = experiment['parameters']
+        parameter_names['epsilon_decay_episodes_required'] = parameter_names.pop('epsilon_decay_per_step')
+
+        rewards = experiment['rewards']
+        for i in range(len(rewards)):
+            for j in range(len(rewards[i])):
+                rewards[i][j] = rewards[i][j]/10
+
+        objects[idx] = experiment
 
     return objects
 
@@ -32,7 +41,7 @@ def get_all_filenames():
 if __name__ == '__main__':
     print("loading experiments")
     ct = time.time()
-    experiments = load_all_files()
+    experiments = load_all_files(True)
     print("finished loading in {} s".format(time.time() - ct))
 
     obj = {}
