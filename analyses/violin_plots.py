@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 
 
 def get_param_value_dict(exps):
+    """
+    Go through all given experiments and gather all values of the average reward (over
+    the entire experiment) for each parameter and parameter value in a dictionary.
+    """
+
     parameters = exps[0]['parameters'].keys()
     param_dict = {param: dict() for param in parameters}
 
@@ -55,8 +60,7 @@ if __name__ == '__main__':
             experiments = pickle.load(f)
     except FileNotFoundError as e:
         exit(e)
-    print("[INFO]: Done loading in {} s.".format(time.time() - ct))
+    print("[INFO]: Done loading in {}s.".format(time.time() - ct))
 
     dictionary = get_param_value_dict(experiments)
     violin_plot_all(dictionary)
-    print(dictionary)
