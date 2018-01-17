@@ -6,8 +6,7 @@ import time
 def load_all_files(load_few=False) -> list:
     filenames = get_all_filenames()
     if load_few and len(filenames) > 10:
-        filenames = filenames[0:10]
-
+        filenames = filenames[0:100]
     objects = [None for _ in range(0, len(filenames))]
 
     for idx, file in enumerate(filenames):
