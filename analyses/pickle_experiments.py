@@ -2,6 +2,8 @@ import pickle
 import os
 import json
 import time
+from json import JSONDecodeError
+
 
 def load_all_files(load_few=False) -> list:
     filenames = get_all_filenames()
@@ -13,7 +15,11 @@ def load_all_files(load_few=False) -> list:
         if (idx + 1) % 100 == 0:
             print("[INFO]: Loaded {} files.".format(idx + 1))
 
-        experiment = import_experiment(file)
+        try:
+            experiment = import_experiment(file)
+        except JSONDecodeError:
+            print("Could not load file.")
+            continue
         objects[idx] = experiment
 
     return objects
@@ -25,7 +31,7 @@ def import_experiment(fn):
 
 
 def get_all_filenames():
-    path = "../../data-new/"
+    path = "../data-new/"
     return [path + file for file in os.listdir(path) if ".json" in file]
 
 
@@ -38,5 +44,6 @@ if __name__ == '__main__':
     obj = {}
     obj["experiments"] = experiments
 
-    with open("../../experiments-new.pickle", "wb") as f:
+    with open("../experiments-new.pickle", "wb") as f:
         pickle.dump(experiments, f, protocol=pickle.HIGHEST_PROTOCOL)
+

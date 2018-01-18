@@ -6,18 +6,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def get_linear_fit_models(exps):
+def get_linear_fit_models(exps, after_epsilon_decay=False):
     """
     For each experiment, estimate a linear trend throughout the data
     and determine its slope as a measure of how favourable that trend is.
     """
 
-    linear_fit_models = [[] for _ in exps]
+    linear_fit_models = [None for _ in exps]
 
+    idx_offset = 0
     for exp_idx, exp in enumerate(exps):
+        if not exp:
+            print("[WARNING]: Experiment is None.")
+            idx_offset -= 1
+            linear_fit_models.pop()
+            continue
         episode_reward_sums = [np.sum(rewards) for rewards in exp['rewards']]
         x_values = [i for i in range(0, len(episode_reward_sums))]
-        linear_fit_models[exp_idx] = np.polyfit(x_values, episode_reward_sums, 1)
+        linear_fit_models[exp_idx + idx_offset] = np.polyfit(x_values, episode_reward_sums, 1)
 
     return np.array(linear_fit_models)
 
@@ -51,14 +57,14 @@ if __name__ == '__main__':
     print("[INFO]: Starting to load.")
     ct = time.time()
     try:
-        with open("experiments.pickle", "rb") as f:
+        with open("../experiments-new.pickle", "rb") as f:
             experiments = pickle.load(f)
     except FileNotFoundError as e:
         exit(e)
     print("[INFO]: Done loading in {}s.".format(time.time() - ct))
 
     lines = get_linear_fit_models(experiments)
-    h_idx, h_slp = get_n_highest_slopes(lines, 5)
+    h_idx, h_slp = get_n_highest_slopes(lines, 10)
     linear_fit_plot_multiple([experiments[i] for i in h_idx], h_slp)
 
 
