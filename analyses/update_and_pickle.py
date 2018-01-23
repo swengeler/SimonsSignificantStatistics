@@ -35,7 +35,7 @@ def load_all_files(load_few=False) -> list:
     idx_offset = 0
     for idx, file in enumerate(filenames):
         if (idx + 1) % 100 == 0:
-            print("[INFO]: Loaded {} filess".format(idx + 1))
+            print("[INFO]: Loaded {} files.".format(idx + 1))
 
         try:
             experiment = import_experiment(file)
@@ -85,6 +85,6 @@ if __name__ == '__main__':
     obj = {}
     obj["experiments"] = experiments
 
-    with open("../experiments-new-test.pickle", "wb") as f:
+    with open("../experiments-new.pickle", "wb") as f:
         pickle.dump(experiments, f, protocol=pickle.HIGHEST_PROTOCOL)
 

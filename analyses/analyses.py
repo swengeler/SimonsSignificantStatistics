@@ -49,26 +49,32 @@ def get_max_episode_reward(experiment):
 if __name__ == '__main__':
     experiments = None
 
-    print("starting to load")
-    ct = time.time()
-    try:
-        with open("experiments.pickle", "rb") as f:
-            experiments = pickle.load(f)
-    except FileNotFoundError as e:
-        exit(e)
-    print("done loading in {} s".format(time.time() - ct))
+    experiment = None
+    with open('../data-long/DQN-episode_19100-reward_type_0-1516387628.9837182.json', 'r') as jsonf:
+        experiment = json.load(jsonf)
 
-    max = 0
-    episode_idx = 0
-    experiment_idx = 0
-    for idx, exp in enumerate(experiments):
-        m, i = get_max_episode_reward(exp)
-        if m > max:
-            print("found new max {} at experiment {} in episode {}".format(m, idx, i))
-            max, idx, experiment_idx = m, i, idx
+    plot_reward_over_experiment(experiment)
 
-    print(get_parameters(experiments[experiment_idx]))
-    plot_reward_over_experiment(experiments[experiment_idx])
+    # print("starting to load")
+    # ct = time.time()
+    # try:
+    #     with open("experiments.pickle", "rb") as f:
+    #         experiments = pickle.load(f)
+    # except FileNotFoundError as e:
+    #     exit(e)
+    # print("done loading in {} s".format(time.time() - ct))
+    #
+    # max = 0
+    # episode_idx = 0
+    # experiment_idx = 0
+    # for idx, exp in enumerate(experiments):
+    #     m, i = get_max_episode_reward(exp)
+    #     if m > max:
+    #         print("found new max {} at experiment {} in episode {}".format(m, idx, i))
+    #         max, idx, experiment_idx = m, i, idx
+    #
+    # print(get_parameters(experiments[experiment_idx]))
+    # plot_reward_over_experiment(experiments[experiment_idx])
 
 
 

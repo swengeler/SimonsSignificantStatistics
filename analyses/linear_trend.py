@@ -57,13 +57,25 @@ if __name__ == '__main__':
     print("[INFO]: Starting to load.")
     ct = time.time()
     try:
-        with open("../experiments-new.pickle", "rb") as f:
+        with open("../experiments-fixation-etc-1.pickle", "rb") as f:
             experiments = pickle.load(f)
     except FileNotFoundError as e:
         exit(e)
     print("[INFO]: Done loading in {}s.".format(time.time() - ct))
 
     lines = get_linear_fit_models(experiments)
+
+    print("[INFO]: Starting to load.")
+    ct = time.time()
+    try:
+        with open("../experiments-fixation-etc-2.pickle", "rb") as f:
+            experiments = pickle.load(f)
+    except FileNotFoundError as e:
+        exit(e)
+    print("[INFO]: Done loading in {}s.".format(time.time() - ct))
+
+    np.concatenate((lines, get_linear_fit_models(experiments)))
+
     h_idx, h_slp = get_n_highest_slopes(lines, 10)
     linear_fit_plot_multiple([experiments[i] for i in h_idx], h_slp)
 
