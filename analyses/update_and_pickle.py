@@ -29,7 +29,7 @@ def get_env_json():
 def load_all_files(load_few=False) -> list:
     filenames = get_all_filenames()
     if load_few and len(filenames) > 10:
-        filenames = filenames[0:10]
+        filenames = filenames[0:100]
     objects = [None for _ in range(0, len(filenames))]
 
     idx_offset = 0
@@ -39,7 +39,7 @@ def load_all_files(load_few=False) -> list:
 
         try:
             experiment = import_experiment(file)
-        except JSONDecodeError:
+        except (JSONDecodeError, UnicodeDecodeError):
             print("[WARNING]: Could not load file.")
             objects.remove(None)
             idx_offset -= 1
@@ -72,19 +72,19 @@ def import_experiment(fn):
 
 
 def get_all_filenames():
-    path = "../data-new/"
+    path = "../data-newest/"
     return [path + file for file in os.listdir(path) if ".json" in file]
 
 
 if __name__ == '__main__':
     print("[INFO]: Loading experiments.")
     ct = time.time()
-    experiments = load_all_files()
+    experiments = load_all_files(load_few=True)
     print("[INFO]: Finished loading in {}s.".format(time.time() - ct))
 
     obj = {}
     obj["experiments"] = experiments
 
-    with open("../experiments-new.pickle", "wb") as f:
+    with open("../experiments-newest.pickle", "wb") as f:
         pickle.dump(experiments, f, protocol=pickle.HIGHEST_PROTOCOL)
 

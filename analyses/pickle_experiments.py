@@ -8,7 +8,7 @@ from json import JSONDecodeError
 def load_all_files(load_few=False, batch_size=0) -> list:
     filenames = get_all_filenames()
     if load_few and len(filenames) > 10:
-        filenames = filenames[1:]
+        filenames = filenames[1:100]
     objects = [None for _ in range(0, len(filenames))]
 
     for idx, file in enumerate(filenames):

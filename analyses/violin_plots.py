@@ -61,19 +61,30 @@ def get_param_value_dict(exps, after_epsilon_decay=False):
 def violin_plot_single(param_name, param_value_dict, save=True):
     x_position = 2
     plt.figure(1)
+    plt.ylabel("Average cumulative reward per episode")
+    plt.xlabel("Parameter values [number occurrences]")
+    plt.subplots_adjust(bottom=0.2)
+    value_data_tuples = []
     for param_value, param_value_data in param_value_dict.items():
-        plt.violinplot(param_value_data, [x_position], widths=0.75)
+        value_data_tuples.append((param_value, param_value_data))
+
+    value_data_tuples = sorted(value_data_tuples)
+    for vdt in value_data_tuples:
+        plt.violinplot(vdt[1], [x_position], widths=0.75)
         x_position += 2
+
     plt.xticks([i for i in range (2, 2 * len(param_value_dict) + 1, 2)],
-               ["{}\n[{}]".format(param_value, len(param_value_data)) for param_value, param_value_data in param_value_dict.items()])
-    plt.title("Violin plots for parameter {}".format(param_name))
+               ["{}\n[{}]".format(vdt[0], len(vdt[1])) for vdt in value_data_tuples])
+    # plt.title("Violin plots for parameter {}".format(param_name))
 
     if not save:
         plt.show()
     else:
-        dir = "plots"
+        dir_name = "./plots/<"
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
         name = "plot_parameter_{}.png".format(param_name)
-        plt.savefig(os.path.join(dir, name))
+        plt.savefig(dir_name + name)
         plt.close(True)
 
 
@@ -88,7 +99,7 @@ if __name__ == '__main__':
     print("[INFO]: Starting to load.")
     ct = time.time()
     try:
-        with open("../experiments-new.pickle", "rb") as f:
+        with open("../experiments-newest.pickle", "rb") as f:
             experiments = pickle.load(f)
     except FileNotFoundError as e:
         exit(e)

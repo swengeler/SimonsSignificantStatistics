@@ -15,7 +15,6 @@ def load_reward_history(directory_path):
     with open(file_name, "r") as f:
         reader = csv.reader(f, delimiter=" ")
         for row in reader:
-            print(line_counter)
             episode_reward_history = []
             for col in row:
                 if col is '':

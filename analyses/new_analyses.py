@@ -1,8 +1,12 @@
+import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from load_files import *
+import scipy.signal as sps
 from scipy.stats import gaussian_kde
+
+from load_files import *
+
 
 def action_size_over_time(path):
     before = time.time()
@@ -31,17 +35,30 @@ def action_size_over_time(path):
     # plt.show()
 
 
-def max_q_over_time(path):
+def max_q_over_time(path, smoothing=False):
     states = load_state_history(path)
     points = []
     model = None
     for i in range(0, 5000, 1):
         if i % 50 == 0:
             model = load_model(path, i, 81)
-        for j in range(0, len(states[i]), 50):
+        for j in range(0, len(states[i]), 100):
             points.append(np.max(model.predict(np.array(states[i][j]).reshape([1, 6]))))
+        # points.append(np.max(model.predict(np.array(states[i][100]).reshape([1, 6]))))
 
-    plt.plot([i for i in range(len(points))], points)
+    plt.plot([i for i in range(len(points))], points if not smoothing else sps.savgol_filter(points, 99, 1))
+    plt.show()
+
+
+def certain_state_q_over_time(path, state, smoothing=False):
+    points = []
+    model = None
+    for i in range(0, 5000, 1):
+        if i % 50 == 0:
+            model = load_model(path, i, 81)
+        points.append(np.max(model.predict(np.array(state).reshape([1, 6]))))
+
+    plt.plot([i*50 for i in range(len(points))], points if not smoothing else sps.savgol_filter(points, 99, 1))
     plt.show()
 
 
@@ -63,7 +80,20 @@ def position_histogram(path, index):
                 first_state[-1] = first_state[-1] - np.pi
 
     plt.figure(0)
-    plt.hist(first_state, 51)
+    plt.hist(first_state[-500*200:], 51)
+    plt.figure(1)
+    plt.hist(first_state[:500*200], 51)
+    plt.figure(2)
+    plt.hist(first_state[2500*200:3000*200], 51)
+    # plt.figure(0)
+    # plt.hist(first_state, 51)
+    # plt.figure(1)
+    # print("THing:", int(len(first_state) / 3))
+    # plt.hist(first_state[:int(len(first_state) / 3)], 51)
+    # plt.figure(2)
+    # plt.hist(first_state[int(len(first_state) / 3):int(2 * len(first_state) / 3)], 51)
+    # plt.figure(3)
+    # plt.hist(first_state[int(2 * len(first_state) / 3):], 51)
     plt.show()
 
 
@@ -86,9 +116,46 @@ def action_difference_histogram(path, index=0):
     plt.show()
 
 
+def get_experiment_summed_rewards(experiment_rewards):
+    ep_rewards = []
+    for episode in experiment_rewards:
+        s = np.sum(episode)
+        ep_rewards.append(s)
+    return ep_rewards
+
+
+def plot_episode_reward(path, smoothing=False):
+    rewards = load_reward_history(path)
+
+    ep_rewards = get_experiment_summed_rewards(rewards)
+
+    plt.plot([i for i in range(len(ep_rewards))], ep_rewards if not smoothing else sps.savgol_filter(ep_rewards, 99, 1))
+    plt.show()
+
+
+def plot_average_episode_reward(path, count=10, smoothing=False):
+    all_ep_rewards = []
+    for i, name in enumerate(os.listdir(path)):
+        if i >= count:
+            break
+        if os.path.isdir(os.path.join(path, name)):
+            rewards = load_reward_history(path + name + "/")
+            all_ep_rewards.append(get_experiment_summed_rewards(rewards))
+        print("Loaded {} reward histories.".format(len(all_ep_rewards)))
+
+    averaged_ep_rewards = np.average(np.array(all_ep_rewards), 0)
+    plt.plot([i for i in range(len(averaged_ep_rewards))], averaged_ep_rewards if not smoothing else sps.savgol_filter(averaged_ep_rewards, 99, 1))
+    plt.show()
+
+
 if __name__ == "__main__":
-    directory_name = "../test-analysis/23-01-2018_02-16-10_05a2090c-06e1-4d55-9d94-c188b6607b6e/"
-    action_difference_histogram(directory_name, 1)
+    directory_name = "../normal-index-0/23-01-2018_05-38-45_c5fa057b-d73e-4ae0-9113-e07ac2bbf9dc/"
+    dir_name = "../normal-index-2/22-01-2018_23-49-16_808fe23e-786a-437c-a765-6b66200341a6/"
+    # certain_state_q_over_time(directory_name, (np.pi, 0, np.pi, 0, np.pi, 0))
+    # position_histogram(directory_name, 2)
+    # max_q_over_time(directory_name, smoothing=False)
+    # plot_average_episode_reward("../normal-index-0/", count=10, smoothing=False)
+    plot_episode_reward(directory_name, False)
 
     # before = time.time()
     # states = load_state_history(directory_name)
