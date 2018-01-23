@@ -136,7 +136,7 @@ def load_episode_max_q_history(directory_path, episode_idx):
     return episode_max_q_history
 
 
-def load_state_history(directory_path):
+def load_state_history(directory_path, process_function=None):
     file_name = directory_path + "state.csv"
 
     state_history = []

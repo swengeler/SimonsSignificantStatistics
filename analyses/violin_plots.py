@@ -58,15 +58,23 @@ def get_param_value_dict(exps, after_epsilon_decay=False):
     return param_dict
 
 
-def violin_plot_single(param_name, param_value_dict):
+def violin_plot_single(param_name, param_value_dict, save=True):
     x_position = 2
+    plt.figure(1)
     for param_value, param_value_data in param_value_dict.items():
         plt.violinplot(param_value_data, [x_position], widths=0.75)
         x_position += 2
     plt.xticks([i for i in range (2, 2 * len(param_value_dict) + 1, 2)],
                ["{}\n[{}]".format(param_value, len(param_value_data)) for param_value, param_value_data in param_value_dict.items()])
     plt.title("Violin plots for parameter {}".format(param_name))
-    plt.show()
+
+    if not save:
+        plt.show()
+    else:
+        dir = "plots"
+        name = "plot_parameter_{}.png".format(param_name)
+        plt.savefig(os.path.join(dir, name))
+        plt.close(True)
 
 
 def violin_plot_all(param_dict):
