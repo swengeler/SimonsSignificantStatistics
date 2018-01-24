@@ -40,7 +40,7 @@ def max_q_over_time(path, smoothing=False, window=49, label=None):
     model = None
     for i in range(0, 5000, 1):
         if i % 50 == 0:
-            model = load_model(path, i, 81)
+            model = load_model(path, i, 25 if "normal-index-2" in path else 81)
         for j in range(0, len(states_q[i]), 100):
             points.append(np.max(model.predict(np.array(states_q[i][j]).reshape([1, 6]))))
         # points.append(np.max(model.predict(np.array(states[i][100]).reshape([1, 6]))))
@@ -112,10 +112,25 @@ def action_difference_histogram(path, bins=49, label=None):
 
     first_joint = []
     second_joint = []
+    first_500 = 0
+    middle_500_start = 0
+    middle_500_end = 0
+    last_500 = 0
+    action_counter = 0
     for i in range(len(actions)):
         for j in range(len(actions[i]) - 1):
             first_joint.append(actions[i][j + 1][0] - actions[i][j][0])
             second_joint.append(actions[i][j + 1][1] - actions[i][j][1])
+            action_counter += 1
+
+        if i == 499:
+            first_500 = action_counter
+        elif i == 2500:
+            middle_500_start = action_counter
+        elif i == 2999:
+            middle_500_end = action_counter
+        elif i == 4500:
+            last_500 = action_counter
 
     dir_name = "./"
     if label:
@@ -134,8 +149,8 @@ def action_difference_histogram(path, bins=49, label=None):
         plt.close(True)
 
     plt.figure(1)
-    plt.hist(first_joint[:500 * 200], bins)
-    plt.hist(second_joint[:500 * 200], bins)
+    plt.hist(first_joint[:first_500], bins)
+    plt.hist(second_joint[:first_500], bins)
     plt.xlabel("Difference in positions\nimmediately following each other")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2, left=0.2)
@@ -144,8 +159,8 @@ def action_difference_histogram(path, bins=49, label=None):
         plt.close(True)
 
     plt.figure(2)
-    plt.hist(first_joint[2500 * 200:3000 * 200], bins)
-    plt.hist(second_joint[2500 * 200:3000 * 200], bins)
+    plt.hist(first_joint[middle_500_start:middle_500_end], bins)
+    plt.hist(second_joint[middle_500_start:middle_500_end], bins)
     plt.xlabel("Difference in positions\nimmediately following each other")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2, left=0.2)
@@ -154,8 +169,8 @@ def action_difference_histogram(path, bins=49, label=None):
         plt.close(True)
 
     plt.figure(3)
-    plt.hist(first_joint[4500 * 200:], bins)
-    plt.hist(second_joint[4500 * 200:], bins)
+    plt.hist(first_joint[last_500:], bins)
+    plt.hist(second_joint[last_500:], bins)
     plt.xlabel("Difference in positions\nimmediately following each other")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2, left=0.2)
@@ -168,25 +183,30 @@ def action_difference_histogram(path, bins=49, label=None):
 
 
 def get_experiment_summed_rewards(experiment_rewards):
-    ep_rewards = []
+    er = []
     for episode in experiment_rewards:
         s = np.sum(episode)
-        ep_rewards.append(s)
-    return ep_rewards
+        er.append(s)
+    return er
 
 
-def plot_episode_reward(path, smoothing=False, window=49, plot_linear_fit=False, label=None):
+def plot_episode_reward(path, smoothing=False, window=49, plot_linear_fit=True, label=None):
     rewards_r = load_reward_history(path)
 
     ep_rewards = get_experiment_summed_rewards(rewards_r)
     linear_fit = np.polyfit([i for i in range(len(ep_rewards))], ep_rewards, 1)
 
-    plt.plot([i for i in range(len(ep_rewards))], ep_rewards if not smoothing else sps.savgol_filter(ep_rewards, window, 1), label="data")
+    plt.plot([i for i in range(len(ep_rewards))], ep_rewards, label="data")
     if plot_linear_fit:
         plt.plot([i for i in range(len(ep_rewards))], [linear_fit[0] * i + linear_fit[1] for i in range(len(ep_rewards))], label="line approx.")
 
+    if label and plot_linear_fit:
+        with open(path + "line_eq.txt", "w") as f:
+            f.write("Line: {} * x + {}\n".format(linear_fit[0], linear_fit[1]))
+
     plt.xlabel("Episodes")
     plt.ylabel("Cumulative reward per episode")
+    plt.legend()
     plt.subplots_adjust(bottom=0.2, left=0.2)
 
     if not label:
@@ -196,7 +216,27 @@ def plot_episode_reward(path, smoothing=False, window=49, plot_linear_fit=False,
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
         plt.savefig(dir_name + "cumulative_reward.png")
-        plt.close(True)
+        plt.close('all')
+
+    # smoothing
+    plt.plot([i for i in range(len(ep_rewards))], sps.savgol_filter(ep_rewards, window, 1), label="data")
+    if plot_linear_fit:
+        plt.plot([i for i in range(len(ep_rewards))],
+                 [linear_fit[0] * i + linear_fit[1] for i in range(len(ep_rewards))], label="line approx.")
+
+    plt.xlabel("Episodes")
+    plt.ylabel("Cumulative reward per episode")
+    plt.legend()
+    plt.subplots_adjust(bottom=0.2, left=0.2)
+
+    if not label:
+        plt.show()
+    else:
+        dir_name = "./plots/" + label + "/"
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        plt.savefig(dir_name + "cumulative_reward_smoothed.png")
+        plt.close('all')
 
 
 def plot_max_min_avg_reward(path, smoothing=False, window=49, label=None):
@@ -251,6 +291,11 @@ def pendulum_position_histogram(path, bins=51, label=None):
     all_states = []
     upper_states = []
     upper_low_vel_states = []
+    first_500 = 0
+    middle_500_start = 0
+    middle_500_end = 0
+    last_500 = 0
+    pendulum_counter = 0
     for i in range(len(states_p)):
         for j in range(len(states_p[i])):
             if states_p[i][j][0] > 2 * np.pi:
@@ -264,6 +309,17 @@ def pendulum_position_histogram(path, bins=51, label=None):
                 upper_states.append(all_states[-1])
                 if abs(states_p[i][j][1]) < 2 * np.pi:
                     upper_low_vel_states.append(all_states[-1])
+
+            pendulum_counter += 1
+
+        if i == 499:
+            first_500 = pendulum_counter
+        elif i == 2500:
+            middle_500_start = pendulum_counter
+        elif i == 2999:
+            middle_500_end = pendulum_counter
+        elif i == 4500:
+            last_500 = pendulum_counter
 
     dir_name = "./"
     if label:
@@ -286,7 +342,7 @@ def pendulum_position_histogram(path, bins=51, label=None):
         plt.close(True)
 
     plt.figure(1)
-    plt.hist(all_states[:500*200], bins)
+    plt.hist(all_states[:first_500], bins)
     plt.xlabel("Angular position in radians\n(0 as upright position)")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2)
@@ -295,7 +351,7 @@ def pendulum_position_histogram(path, bins=51, label=None):
         plt.close(True)
 
     plt.figure(2)
-    plt.hist(all_states[2500*200:3000*200], bins)
+    plt.hist(all_states[middle_500_start:middle_500_end], bins)
     plt.xlabel("Angular position in radians\n(0 as upright position)")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2)
@@ -304,7 +360,7 @@ def pendulum_position_histogram(path, bins=51, label=None):
         plt.close(True)
 
     plt.figure(3)
-    plt.hist(all_states[4500*200:], bins)
+    plt.hist(all_states[last_500:], bins)
     plt.xlabel("Angular position in radians\n(0 as upright position)")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2)
@@ -321,6 +377,11 @@ def motor_position_histogram(path, bins=51, label=None):
 
     all_states_0 = []
     all_states_1 = []
+    first_500 = 0
+    middle_500_start = 0
+    middle_500_end = 0
+    last_500 = 0
+    motor_counter = 0
     for i in range(len(states_m)):
         for j in range(len(states_m[i])):
             # lower motor
@@ -339,6 +400,17 @@ def motor_position_histogram(path, bins=51, label=None):
 
             all_states_1[-1] = all_states_1[-1] - np.pi
 
+            motor_counter += 1
+
+        if i == 499:
+            first_500 = motor_counter
+        elif i == 2500:
+            middle_500_start = motor_counter
+        elif i == 2999:
+            middle_500_end = motor_counter
+        elif i == 4500:
+            last_500 = motor_counter
+
     dir_name = "./"
     if label:
         dir_name = "./plots/" + label + "/"
@@ -356,8 +428,8 @@ def motor_position_histogram(path, bins=51, label=None):
         plt.close(True)
 
     plt.figure(1)
-    plt.hist(all_states_0[:500*200], bins)
-    plt.hist(all_states_1[:500*200], bins)
+    plt.hist(all_states_0[:first_500], bins)
+    plt.hist(all_states_1[:first_500], bins)
     plt.xlabel("Angular position in radians\n(0 as upright position)")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2, left=0.2)
@@ -366,8 +438,8 @@ def motor_position_histogram(path, bins=51, label=None):
         plt.close(True)
 
     plt.figure(2)
-    plt.hist(all_states_0[2500*200:3000*200], bins)
-    plt.hist(all_states_1[2500*200:3000*200], bins)
+    plt.hist(all_states_0[middle_500_start:middle_500_end], bins)
+    plt.hist(all_states_1[middle_500_start:middle_500_end], bins)
     plt.xlabel("Angular position in radians\n(0 as upright position)")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2, left=0.2)
@@ -376,8 +448,8 @@ def motor_position_histogram(path, bins=51, label=None):
         plt.close(True)
 
     plt.figure(3)
-    plt.hist(all_states_0[4500*200:], bins)
-    plt.hist(all_states_1[4500*200:], bins)
+    plt.hist(all_states_0[last_500:], bins)
+    plt.hist(all_states_1[last_500:], bins)
     plt.xlabel("Angular position in radians\n(0 as upright position)")
     plt.ylabel("Number of occurrences")
     plt.subplots_adjust(bottom=0.2, left=0.2)
@@ -390,27 +462,49 @@ def motor_position_histogram(path, bins=51, label=None):
 
 
 if __name__ == "__main__":
+    index = -1
+
     # experiment used for reward/done function 0
     reward_0_dir = "../normal-index-0/22-01-2018_23-45-20_42bf3e51-61a9-4e8b-a788-951ae88a40fb/"
 
-    # experiment used for reward/done function 0
-    reward_1_dir = "../normal-index-1//"
+    # experiment used for reward/done function 1
+    reward_1_dir = "../normal-index-1/23-01-2018_18-53-01_fae60ffb-dce7-444c-a02c-051890508039/"
 
-    # experiment used for reward/done function 0
-    reward_2_dir = "../normal-index-2//"
+    # experiment used for reward/done function 2
+    reward_2_dir = "../normal-index-2/23-01-2018_18-53-01_7d40c1d6-13a4-4bbf-a694-e0d9c6ad91c4/"
 
-    random_dir = "../random-index-0//"
+    random_0_dir = "../random-index-0/23-01-2018_23-50-26_91a4d8c4-de0b-43f2-a471-1463fffc69d0/"
+    random_1_dir = "../random-index-1/23-01-2018_23-50-26_a4861c6c-1dd0-4eb6-b262-bd4ef30ac466/"
+    random_2_dir = "../random-index-2/23-01-2018_23-50-26_181aaa1f-cc85-47aa-9b65-ec31c43b5ee6/"
 
-    dirs = [reward_0_dir, reward_1_dir, reward_2_dir, random_dir]
+    dirs = [reward_0_dir, reward_1_dir, reward_2_dir, random_0_dir, random_1_dir, random_2_dir]
 
-    for i, dir in enumerate(dirs):
-        if i > 0:
-            break
-        max_q_over_time(dir, smoothing=True, label=("reward_" + str(i) if i < 3 else "random_0"))
-        motor_position_histogram(dir, label=("reward_" + str(i) if i < 3 else "random_0"))
-        plot_episode_reward(dir, False, label=("reward_" + str(i) if i < 3 else "random_0"))
-        plot_max_min_avg_reward(dir, True, label=("reward_" + str(i) if i < 3 else "random_0"))
-        action_difference_histogram(dir, label=("reward_" + str(i) if i < 3 else "random_0"))
-        pendulum_position_histogram(dir, label=("reward_" + str(i) if i < 3 else "random_0"))
+    for i, directory in enumerate(dirs):
+        # if i > -1:
+        #     break
+        action_difference_histogram(directory, label=("reward_" + str(i) if i < 3 else "random_" + str(i - 3)))
+        plt.close('all')
+        time.sleep(0.5)
+
+        motor_position_histogram(directory, label=("reward_" + str(i) if i < 3 else "random_" + str(i - 3)))
+        plt.close('all')
+        time.sleep(0.5)
+
+        pendulum_position_histogram(directory, label=("reward_" + str(i) if i < 3 else "random_" + str(i - 3)))
+        plt.close('all')
+        time.sleep(0.5)
+
+        plot_episode_reward(directory, False, label=("reward_" + str(i) if i < 3 else "random_" + str(i - 3)))
+        plt.close('all')
+        time.sleep(0.5)
+
+        if "random" not in directory:
+            max_q_over_time(directory, smoothing=True, label=("reward_" + str(i) if i < 3 else "random_" + str(i - 3)))
+            plt.close('all')
+            time.sleep(0.5)
+
+        plot_max_min_avg_reward(directory, True, label=("reward_" + str(i) if i < 3 else "random_" + str(i - 3)))
+        plt.close('all')
+        time.sleep(0.5)
 
 
